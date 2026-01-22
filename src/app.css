@@ -1,0 +1,162 @@
+/* hearth - global styles */
+
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap');
+
+:root {
+	/* the palette - warm, muted, late night */
+	--bg-deep: #0a0a0f;
+	--bg-surface: #12121a;
+	--ember: #e8a54b;
+	--ember-dim: #c4793a;
+	--ember-glow: #ffb347;
+	--ash: #3a3a4a;
+	--smoke: #6a6a7a;
+	--text: #b8b8c8;
+	--text-dim: #68687a;
+
+	/* the glow */
+	--glow-ember: 0 0 20px rgba(232, 165, 75, 0.3);
+	--glow-soft: 0 0 40px rgba(232, 165, 75, 0.15);
+
+	/* typography */
+	--font-pixel: 'Press Start 2P', monospace;
+	--font-terminal: 'VT323', monospace;
+}
+
+* {
+	margin: 0;
+	padding: 0;
+	box-sizing: border-box;
+}
+
+html, body {
+	height: 100%;
+	background: var(--bg-deep);
+	color: var(--text);
+	font-family: var(--font-terminal);
+	font-size: 18px;
+	line-height: 1.5;
+	overflow: hidden;
+}
+
+/* CRT screen effect */
+body::before {
+	content: '';
+	position: fixed;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	background:
+		repeating-linear-gradient(
+			0deg,
+			rgba(0, 0, 0, 0.1) 0px,
+			rgba(0, 0, 0, 0.1) 1px,
+			transparent 1px,
+			transparent 2px
+		);
+	pointer-events: none;
+	z-index: 9999;
+	opacity: 0.3;
+}
+
+/* subtle vignette */
+body::after {
+	content: '';
+	position: fixed;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	background: radial-gradient(
+		ellipse at center,
+		transparent 0%,
+		transparent 60%,
+		rgba(0, 0, 0, 0.4) 100%
+	);
+	pointer-events: none;
+	z-index: 9998;
+}
+
+/* pixel-perfect rendering for canvas */
+canvas {
+	image-rendering: pixelated;
+	image-rendering: crisp-edges;
+}
+
+/* scrollbar styling */
+::-webkit-scrollbar {
+	width: 8px;
+}
+
+::-webkit-scrollbar-track {
+	background: var(--bg-deep);
+}
+
+::-webkit-scrollbar-thumb {
+	background: var(--ash);
+	border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+	background: var(--smoke);
+}
+
+/* utility classes */
+.pixel-font {
+	font-family: var(--font-pixel);
+}
+
+.terminal-font {
+	font-family: var(--font-terminal);
+}
+
+.ember-text {
+	color: var(--ember);
+}
+
+.ember-glow {
+	text-shadow: var(--glow-ember);
+}
+
+/* animations */
+@keyframes pulse-glow {
+	0%, 100% {
+		opacity: 0.6;
+	}
+	50% {
+		opacity: 1;
+	}
+}
+
+@keyframes float-up {
+	0% {
+		transform: translateY(0);
+		opacity: 0.8;
+	}
+	100% {
+		transform: translateY(-100vh);
+		opacity: 0;
+	}
+}
+
+@keyframes flicker {
+	0%, 100% {
+		opacity: 1;
+	}
+	92% {
+		opacity: 1;
+	}
+	93% {
+		opacity: 0.8;
+	}
+	94% {
+		opacity: 1;
+	}
+	97% {
+		opacity: 0.9;
+	}
+	98% {
+		opacity: 1;
+	}
+}

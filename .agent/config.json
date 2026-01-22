@@ -1,0 +1,11 @@
+{
+  "objective": "IMPLEMENT SECURITY FIXES: Fix all CRITICAL and HIGH severity vulnerabilities identified in SECURITY_AUDIT.md. Priority order: 1) CRITICAL-01: Add DOMPurify sanitization for XSS prevention, 2) CRITICAL-02: Add input validation for all socket events, 3) CRITICAL-03: Add per-IP connection limits and memory cleanup, 4) HIGH-01 through HIGH-05: Rate limiting, CORS validation, CSP headers, input length checks, WebSocket origin validation. Test that the server still runs after changes. Commit each fix separately.",
+  "project_type": "node",
+  "build_cmd": "npm run build",
+  "test_cmd": "npm test",
+  "lint_cmd": "npm run lint",
+  "max_stuck_attempts": 3,
+  "iteration": 5,
+  "created_at": "2026-01-22T15:15:23.173623",
+  "updated_at": "2026-01-22T16:00:59.949513"
+}

@@ -1,0 +1,7 @@
+thehearth.dev {
+    reverse_proxy hearth:3000
+}
+
+www.thehearth.dev {
+    redir https://thehearth.dev{uri} permanent
+}

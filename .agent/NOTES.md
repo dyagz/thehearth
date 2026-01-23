@@ -5,48 +5,31 @@
 ## Codebase Patterns
 <!-- Reusable patterns discovered - READ THIS FIRST each iteration -->
 
-### Security Implementation Patterns
-1. **Rate Limiting Pattern**: Generic `checkActionRateLimit(socketId, action, maxActions, window)` function
-   - Used for chat messages (5 per 10s), location changes (5 per 60s), timezone changes (5 per 60s)
-   - Cleanup in periodic interval and disconnect handler
+### Socket.IO Client Pattern
+- Connects to socket.io server with auth: `{ cachedUsername, cachedCoords }`
+- Events: `welcome`, `chatHistory`, `chatMessage`, `whisper`, `userCount`, `liveUsers`, `onlineUsers`, `error`, `disconnect`
+- Send events: `chatMessage`, `setLocation`
+- Message format: `{ id, user, text, location, timestamp, verified?, isWhisper?, replyTo? }`
+- Whisper command: `/w username message` - handled server-side
 
-2. **Input Validation Pattern**: Validate BEFORE processing
-   - Type checking first
-   - Length limits second  
-   - Value range/whitelist third
-   - Return early with error on failure
+### Username Generation
+- Pattern: `adjective_noun##` (e.g., `swift_coder42`)
+- Server validates cached usernames against allowed word lists
 
-3. **CORS Configuration**: `parseAllowedOrigins()` function validates env var
-   - Checks for null/undefined
-   - Filters wildcards and empty strings
-   - Validates URL format (http/https only)
-   - Falls back to safe defaults
-
-4. **DOMPurify Sanitization**: Server-side HTML stripping
-   - ALLOWED_TAGS: [] (no tags)
-   - ALLOWED_ATTR: [] (no attributes)
-   - KEEP_CONTENT: true (preserve text)
+### Security Features
+- Rate limiting: 5 messages per 10 seconds
+- Message sanitization via DOMPurify (strips HTML)
+- Origin validation for WebSocket connections
+- Max message length: 500 characters
 
 ## Current Observations
-
-### Security Fixes Completed
-- All CRITICAL vulnerabilities addressed (XSS, event injection, DoS)
-- All HIGH severity issues resolved (rate limiting, CORS, CSP, validation)
-- Server tested and functional
-- One commit contains all fixes (already in git history)
-
-### Bug Fixed
-- `parseAllowedOrigins()` was using optional chaining incorrectly
-- Fixed by adding early return when env is null/undefined
-- Prevents TypeError when ALLOWED_ORIGINS not set
-
-### PowerShell Compatibility
-- Must use semicolon (`;`) instead of `&&` for command chaining
-- Alternative: separate commands or use `-and` in conditionals
+- Package.json has socket.io-client already installed
+- Server runs on port 3000 (or env.PORT)
+- Production server: thehearth.dev
+- Chat history persisted to disk
+- Discord OAuth authentication available
 
 ## Questions / Blockers
 
-None - all security fixes complete and tested.
-
 ---
-*Updated: 2026-01-22 (Iteration 6)*
+*Initialized: 2026-01-22 22:07:46*

@@ -4,40 +4,36 @@
 > Add new items as discovered during implementation.
 
 ## Objective
-✅ COMPLETE: All CRITICAL and HIGH security fixes implemented, tested, and verified. Application ready for deployment.
+Build a CLI client (cli.js) for hearth that connects to the same socket.io backend as the web app. It should: 1) Connect to thehearth.dev socket.io server 2) Use cached username from ~/.hearth-cli.json 3) Display chat messages with colors and timestamps 4) Support sending messages 5) Show @mentions and replies 6) Support /w whisper, /users, /help, /quit commands 7) Work synced with web users in the same chat
 
-## CRITICAL Fixes (P0 - Immediate) ✅ COMPLETE
+## High Priority
 
-- [x] **CRITICAL-01: XSS Prevention** - Installed isomorphic-dompurify, updated sanitizeString() in server.js
-- [x] **CRITICAL-02: Socket Event Validation** - Added input validation for setTimezone, setLocation, chatMessage
-- [x] **CRITICAL-03: DoS Prevention** - Added per-IP connection limits, periodic cleanup of stale Map entries
-
-## HIGH Fixes (P1 - Before Launch) ✅ COMPLETE
-
-- [x] **HIGH-01: Enhanced Rate Limiting** - Added checkActionRateLimit for setLocation/setTimezone (5 per minute)
-- [x] **HIGH-02: CORS Validation** - Created parseAllowedOrigins() function with proper validation
-- [x] **HIGH-03: CSP Headers** - Added Content-Security-Policy, HSTS, Permissions-Policy headers
-- [x] **HIGH-04: Input Length Validation** - All inputs validated BEFORE processing
-- [x] **HIGH-05: WebSocket Origin Check** - Added origin validation middleware for socket.io
-
-## Validation ✅ COMPLETE
-
-- [x] **Test server starts** - Verified server runs on port 3000 without errors
-- [x] **Test build** - npm run build passed successfully (exit code 0)
-- [x] **Update documentation** - TODO.md, STATUS.md, NOTES.md updated
-- [x] **Final commit** - Prepare final documentation update commit
+- [x] Analyze codebase structure and understand existing patterns
+- [x] Plan implementation approach
+- [x] Implement core functionality
+- [x] Add tests for new code
+- [x] Validate build/lint/test pass
 
 ## Features
 
-<!-- Security enhancements implemented -->
+- [x] CLI client created (cli.js)
+- [x] Socket.io connection to thehearth.dev
+- [x] Username caching in ~/.hearth-cli.json
+- [x] Colorized message display with timestamps
+- [x] @mention highlighting
+- [x] Reply threading display
+- [x] Commands: /help, /users, /w, /location, /quit
+- [x] Location filtering
+- [x] Documentation (CLI_README.md)
 
 ## Bug Fixes
 
-<!-- Add bugs discovered during work -->
+None discovered
 
 ## Tech Debt
 
 <!-- Items identified by code critic -->
 
 ---
-*Initialized: 2026-01-22 16:00:36*
+*Initialized: 2026-01-22 22:07:46*
+*Completed: 2026-01-22 22:15:00*

@@ -98,7 +98,21 @@ export function initSocket() {
 		onlineUsers.set(users);
 	});
 
+	socketInstance.on('usernameChanged', (data: { oldName: string; newName: string }) => {
+		username.set(data.newName);
+		// Update localStorage
+		if (browser) {
+			localStorage.setItem('hearth-username', data.newName);
+		}
+	});
+
 	socket.set(socketInstance);
+}
+
+export function setUsername(newName: string) {
+	if (socketInstance) {
+		socketInstance.emit('setUsername', newName);
+	}
 }
 
 export function setCity(cityName: string) {

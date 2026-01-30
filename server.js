@@ -90,16 +90,44 @@ function generateUsername() {
 	return `${adj}_${noun}${num}`;
 }
 
-// Validate cached username format (must match adjective_noun## pattern)
+// Validate cached username format (must match adjective_noun## pattern OR custom name)
 function isValidCachedUsername(name) {
-	if (typeof name !== 'string' || name.length > 30) return false;
-	// Must match: word_word + 1-2 digits
-	const pattern = /^[a-z]+_[a-z]+\d{1,2}$/;
+	if (typeof name !== 'string' || name.length > 30 || name.length < 2) return false;
+	// Must match: word_word + 1-2 digits (generated) OR valid custom name
+	const generatedPattern = /^[a-z]+_[a-z]+\d{1,2}$/;
+	if (generatedPattern.test(name)) {
+		// Check if parts are from our word lists
+		const parts = name.match(/^([a-z]+)_([a-z]+)\d+$/);
+		if (!parts) return false;
+		return adjectives.includes(parts[1]) && nouns.includes(parts[2]);
+	}
+	// Allow custom names: alphanumeric, underscore, hyphen (no spaces, no special chars)
+	const customPattern = /^[a-zA-Z][a-zA-Z0-9_-]{1,29}$/;
+	return customPattern.test(name);
+}
+
+// Validate custom username (stricter for user-chosen names)
+function isValidCustomUsername(name) {
+	if (typeof name !== 'string') return false;
+	// Length: 2-30 chars
+	if (name.length < 2 || name.length > 30) return false;
+	// Must start with letter, can contain letters, numbers, underscore, hyphen
+	const pattern = /^[a-zA-Z][a-zA-Z0-9_-]{1,29}$/;
 	if (!pattern.test(name)) return false;
-	// Check if parts are from our word lists
-	const parts = name.match(/^([a-z]+)_([a-z]+)\d+$/);
-	if (!parts) return false;
-	return adjectives.includes(parts[1]) && nouns.includes(parts[2]);
+	// Block reserved/system names
+	const reserved = ['hearth', 'admin', 'system', 'bot', 'mod', 'moderator', 'anon', 'anonymous', 'server'];
+	if (reserved.includes(name.toLowerCase())) return false;
+	return true;
+}
+
+// Check if username is currently in use
+function isUsernameTaken(name, excludeSocketId = null) {
+	for (const [socketId, user] of users.entries()) {
+		if (socketId !== excludeSocketId && user.username.toLowerCase() === name.toLowerCase()) {
+			return true;
+		}
+	}
+	return false;
 }
 
 // Timezone offset to coordinates - maps to real cities/regions
@@ -394,10 +422,14 @@ io.on('connection', (socket) => {
 	}
 	connectionsPerIP.get(ip).add(socket.id);
 
+	// Get cached city name if provided
+	const cachedCity = socket.handshake.auth?.cachedCity || null;
+
 	users.set(socket.id, {
 		username,
 		location: 'Global',
 		coords: initialCoords,
+		city: cachedCity,  // City name for display (e.g., "San Francisco")
 		ip,
 		connectedAt: new Date(),
 		isAuthenticated,
@@ -424,7 +456,8 @@ io.on('connection', (socket) => {
 	io.emit('chatMessage', welcomeMsg);
 
 	// Handle direct coordinates from client (city picker)
-	socket.on('setCoords', (coords) => {
+	// Accepts: { lng, lat } or { lng, lat, city }
+	socket.on('setCoords', (data) => {
 		if (!checkActionRateLimit(socket.id, 'setCoords', 5, 60000)) {
 			socket.emit('error', 'Too many location changes');
 			return;
@@ -433,18 +466,74 @@ io.on('connection', (socket) => {
 		const user = users.get(socket.id);
 
 		// Validate coords object
-		if (user && coords && typeof coords === 'object' &&
-		    typeof coords.lng === 'number' && typeof coords.lat === 'number' &&
-		    Number.isFinite(coords.lng) && Number.isFinite(coords.lat) &&
-		    coords.lng >= -180 && coords.lng <= 180 &&
-		    coords.lat >= -90 && coords.lat <= 90) {
+		if (user && data && typeof data === 'object' &&
+		    typeof data.lng === 'number' && typeof data.lat === 'number' &&
+		    Number.isFinite(data.lng) && Number.isFinite(data.lat) &&
+		    data.lng >= -180 && data.lng <= 180 &&
+		    data.lat >= -90 && data.lat <= 90) {
 			// Add small randomness so users don't stack exactly
 			user.coords = {
-				lng: coords.lng + (Math.random() - 0.5) * 2,
-				lat: coords.lat + (Math.random() - 0.5) * 2
+				lng: data.lng + (Math.random() - 0.5) * 2,
+				lat: data.lat + (Math.random() - 0.5) * 2
 			};
+			// Store city name if provided (sanitize it)
+			if (typeof data.city === 'string' && data.city.length <= 50) {
+				user.city = sanitizeString(data.city) || null;
+			}
 			broadcastUsers();
 		}
+	});
+
+	// Handle custom username setting (for AI agents and users who want custom names)
+	socket.on('setUsername', (newName) => {
+		// Rate limit: 3 username changes per 5 minutes
+		if (!checkActionRateLimit(socket.id, 'setUsername', 3, 300000)) {
+			socket.emit('error', 'Too many username changes. Try again in a few minutes.');
+			return;
+		}
+
+		const user = users.get(socket.id);
+		if (!user) return;
+
+		// Don't allow Discord-authenticated users to change username
+		if (user.isAuthenticated) {
+			socket.emit('error', 'Discord users cannot change username');
+			return;
+		}
+
+		// Validate the new username
+		if (!isValidCustomUsername(newName)) {
+			socket.emit('error', 'Invalid username. Use 2-30 chars: letters, numbers, underscore, hyphen. Must start with letter.');
+			return;
+		}
+
+		// Check if username is taken
+		if (isUsernameTaken(newName, socket.id)) {
+			socket.emit('error', `Username "${newName}" is already taken`);
+			return;
+		}
+
+		const oldName = user.username;
+		user.username = newName;
+
+		// Notify the user of their new username
+		socket.emit('usernameChanged', { oldName, newName });
+
+		// Broadcast name change to chat
+		const nameChangeMsg = {
+			id: `system-${Date.now()}-${Math.random()}`,
+			user: 'hearth',
+			text: `${oldName} is now known as ${newName}`,
+			location: 'Global',
+			timestamp: new Date().toISOString(),
+			isSystem: true
+		};
+		io.emit('chatMessage', nameChangeMsg);
+
+		// Update online users list
+		broadcastUsers();
+
+		console.log(`Username changed: ${oldName} -> ${newName}`);
 	});
 
 	// Handle location setting (chat filter)
@@ -575,6 +664,19 @@ io.on('connection', (socket) => {
 	socket.on('disconnect', () => {
 		const user = users.get(socket.id);
 		console.log(`${user?.username || 'unknown'} disconnected. Total: ${users.size - 1}`);
+
+		// Send departure message to chat
+		if (user?.username) {
+			const departureMsg = {
+				id: `system-${Date.now()}-${Math.random()}`,
+				user: 'hearth',
+				text: `${user.username} left the fireside`,
+				location: 'Global',
+				timestamp: new Date().toISOString(),
+				isSystem: true
+			};
+			io.emit('chatMessage', departureMsg);
+		}
 		
 		// Clean up user data
 		if (user && user.ip) {

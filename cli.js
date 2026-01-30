@@ -134,13 +134,39 @@ function displayMessage(msg) {
 	console.log(replyPrefix + messageLine);
 }
 
+// City coordinates for /city command
+const cities = {
+	'san francisco': { lng: -122.4, lat: 37.8 },
+	'los angeles': { lng: -118.2, lat: 34.1 },
+	'seattle': { lng: -122.3, lat: 47.6 },
+	'new york': { lng: -74.0, lat: 40.7 },
+	'chicago': { lng: -87.6, lat: 41.9 },
+	'austin': { lng: -97.7, lat: 30.3 },
+	'toronto': { lng: -79.4, lat: 43.7 },
+	'london': { lng: -0.1, lat: 51.5 },
+	'paris': { lng: 2.3, lat: 48.9 },
+	'berlin': { lng: 13.4, lat: 52.5 },
+	'amsterdam': { lng: 4.9, lat: 52.4 },
+	'tokyo': { lng: 139.7, lat: 35.7 },
+	'seoul': { lng: 127.0, lat: 37.6 },
+	'singapore': { lng: 103.8, lat: 1.4 },
+	'sydney': { lng: 151.2, lat: -33.9 },
+	'sao paulo': { lng: -46.6, lat: -23.5 },
+	'bangalore': { lng: 77.6, lat: 13.0 },
+	'mumbai': { lng: 72.9, lat: 19.1 },
+	'dubai': { lng: 55.3, lat: 25.3 },
+	'tel aviv': { lng: 34.8, lat: 32.1 },
+};
+
 // Show help message
 function showHelp() {
 	console.log(`\n${colors.bright}Hearth CLI Commands${colors.reset}`);
 	console.log(`${colors.cyan}/help${colors.reset}       - Show this help message`);
+	console.log(`${colors.cyan}/name <name>${colors.reset} - Set your display name`);
+	console.log(`${colors.cyan}/city <city>${colors.reset} - Set your location on the map`);
 	console.log(`${colors.cyan}/users${colors.reset}      - List online users (${userCount} online)`);
 	console.log(`${colors.cyan}/w <user> <msg>${colors.reset} - Send private whisper to user`);
-	console.log(`${colors.cyan}/location${colors.reset}   - Change location filter (Global, North America, Europe, Asia, South America, Africa, Oceania)`);
+	console.log(`${colors.cyan}/location${colors.reset}   - Change chat region filter`);
 	console.log(`${colors.cyan}/quit${colors.reset}       - Exit the CLI`);
 	console.log(`${colors.dim}Messages are sent with Enter. Type @username to mention users.${colors.reset}\n`);
 }
@@ -166,6 +192,32 @@ function handleCommand(input) {
 		case '/help':
 		case '/h':
 			showHelp();
+			break;
+		case '/name':
+		case '/nick':
+		case '/username':
+			if (parts.length < 2) {
+				console.log(`${colors.red}Usage: /name <newname>${colors.reset}`);
+				console.log(`${colors.dim}2-30 chars, letters/numbers/underscore/hyphen, must start with letter${colors.reset}`);
+			} else {
+				const newName = parts[1];
+				socket.emit('setUsername', newName);
+			}
+			break;
+		case '/city':
+			if (parts.length < 2) {
+				console.log(`${colors.red}Usage: /city <cityname>${colors.reset}`);
+				console.log(`${colors.dim}Cities: ${Object.keys(cities).map(c => c.split(' ').map(w => w[0].toUpperCase() + w.slice(1)).join(' ')).join(', ')}${colors.reset}`);
+			} else {
+				const cityName = parts.slice(1).join(' ').toLowerCase();
+				const city = cities[cityName];
+				if (city) {
+					socket.emit('setCoords', city);
+					console.log(`${colors.green}Location set to ${cityName.split(' ').map(w => w[0].toUpperCase() + w.slice(1)).join(' ')}${colors.reset}`);
+				} else {
+					console.log(`${colors.red}Unknown city. Try: ${Object.keys(cities).slice(0, 5).join(', ')}...${colors.reset}`);
+				}
+			}
 			break;
 		case '/users':
 		case '/u':
@@ -259,6 +311,16 @@ function connect() {
 		}
 
 		// Update prompt
+		rl.setPrompt(`${colors.dim}[${selectedLocation}]${colors.reset} ${colors.yellow}${username}${colors.reset}> `);
+		rl.prompt();
+	});
+
+	// Username changed confirmation
+	socket.on('usernameChanged', (data) => {
+		username = data.newName;
+		saveConfig({ username });
+		process.stdout.write('\r\x1b[K');
+		console.log(`${colors.green}Username changed: ${data.oldName} -> ${data.newName}${colors.reset}`);
 		rl.setPrompt(`${colors.dim}[${selectedLocation}]${colors.reset} ${colors.yellow}${username}${colors.reset}> `);
 		rl.prompt();
 	});

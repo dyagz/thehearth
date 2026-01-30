@@ -36,6 +36,9 @@
 			ctx.fillStyle = '#0a0a0f';
 			ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+			// Disable image smoothing for crisp pixel art rendering
+			ctx.imageSmoothingEnabled = false;
+
 			// Scale image to fit canvas while maintaining aspect ratio (no stretch)
 			const scale = Math.min(
 				canvas.width / img.naturalWidth,
@@ -110,6 +113,8 @@
 	.tavern-canvas {
 		width: 100%;
 		height: 100%;
+		image-rendering: pixelated;
+		image-rendering: crisp-edges;
 	}
 
 	.loading {

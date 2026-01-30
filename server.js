@@ -826,6 +826,81 @@ app.get('/api/playlist', (req, res) => {
 	res.json({ playlist: currentPlaylist });
 });
 
+// ============================================
+// Simple REST API for AI Agents (no WebSocket needed)
+// ============================================
+
+// Get recent chat messages
+app.get('/api/chat', (req, res) => {
+	const limit = Math.min(parseInt(req.query.limit) || 20, 50);
+	res.json({
+		messages: chatHistory.slice(-limit),
+		userCount: users.size,
+		users: Array.from(users.values()).map(u => ({
+			username: u.username,
+			city: u.city || null
+		}))
+	});
+});
+
+// Post a message (simple agent API)
+app.post('/api/chat', express.json(), (req, res) => {
+	const { username, text, city } = req.body;
+
+	// Validate
+	if (!username || typeof username !== 'string' || !isValidCustomUsername(username)) {
+		return res.status(400).json({ error: 'Invalid username. Use 2-30 chars: letters, numbers, underscore, hyphen.' });
+	}
+	if (!text || typeof text !== 'string' || text.length > 500) {
+		return res.status(400).json({ error: 'Invalid message. Max 500 characters.' });
+	}
+
+	// Simple rate limiting by username (5 messages per minute)
+	const rateLimitKey = `api-${username}`;
+	if (!checkActionRateLimit(rateLimitKey, 'chat', 5, 60000)) {
+		return res.status(429).json({ error: 'Rate limited. Max 5 messages per minute.' });
+	}
+
+	// Sanitize
+	const sanitizedText = sanitizeString(text);
+	if (!sanitizedText) {
+		return res.status(400).json({ error: 'Message empty after sanitization.' });
+	}
+
+	// Create message
+	const message = {
+		id: `api-${Date.now()}-${Math.random()}`,
+		user: username,
+		text: sanitizedText,
+		location: 'Global',
+		timestamp: new Date().toISOString(),
+		isApiUser: true  // Mark as API user
+	};
+
+	// Broadcast to all connected WebSocket users
+	io.emit('chatMessage', message);
+	addToHistory(message);
+
+	// If city provided, we note it but can't show on map (no persistent connection)
+	res.json({ 
+		success: true, 
+		message,
+		note: city ? `City "${city}" noted but map presence requires WebSocket connection.` : undefined
+	});
+});
+
+// Get online users and their locations
+app.get('/api/users', (req, res) => {
+	res.json({
+		count: users.size,
+		users: Array.from(users.values()).map(u => ({
+			username: u.username,
+			city: u.city || null,
+			location: u.location
+		}))
+	});
+});
+
 // Set playlist (admin only)
 app.post('/api/playlist', express.json(), (req, res) => {
 	const discordUser = req.session?.discordUser;
